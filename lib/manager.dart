@@ -1,35 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-
-/// convert type safely
-T? mwbConvert<T extends Object>(dynamic p) => p is T ? p : null;
-
-typedef MWBParams = Map<String, dynamic>;
-typedef MWBResponse = FutureOr<Map<String, dynamic>?>;
-typedef MWBHandle = MWBResponse Function(MWBParams params);
-typedef MWBHandleMap = Map<String, MWBHandle>;
-
-class MWBException implements Exception {
-  final int code;
-  final String? message;
-
-  MWBException(this.message, {this.code = 0});
-
-  String get jsonString => json.encode({"code": code, "message": message});
-}
-
-abstract class MixWebBridge {
-  MWBHandleMap handleMap();
-
-  String injectJavascript() => "";
-}
+import 'package:mix_web_bridge/inner_bridge.dart';
+import './base.dart';
 
 class MixWebBridgeManager {
-  static List<MixWebBridge> _bridges = [];
+  static final _innerBridge = MixWebInnerBridge();
+  static List<MixWebBridge> _bridges = [_innerBridge];
 
   static setBridges(List<MixWebBridge> bridges) {
-    _bridges = bridges;
+    _bridges = [_innerBridge, ...bridges];
   }
 
   Future<String> Function(String js)? jsRunner;
@@ -84,30 +65,39 @@ class MixWebBridgeManager {
     }
   }
 
-  String get injectedScript {
+  String get _injectedScript {
     const global = r'''
-      window.$app = {
-        _cbs: {}, _ecbs: [], _ran: () => parseInt(Math.random() * 100000),
-        bridgeName: "mix_web_bridge",
-        send(name, params) {
-          return new Promise((resolve, reject) => {
-            const cbid = `${name}__${this._ran()}`;
-            const message = JSON.stringify({ name, params, cbid });
-            this._cbs[cbid] = { resolve, reject };
-            window[this.bridgeName].postMessage(message);
-          }).catch(e => console.log(e));
-        },
-        on(name, cb) {
-          const eid = `${name}__${this._ran()}`; this._ecbs.push({eid, cb});
-          return eid;
-        },
-        removeEvent(eid) { this._ecbs = this._ecbs.filter(e => e.eid !== eid) },
-      }
-    ''';
+window.__$app = {
+  _cbs: {}, _ecbs: [], _ran: () => parseInt(Math.random() * 100000),
+  bridgeName: "mix_web_bridge",
+  send(name, params) {
+    return new Promise((resolve, reject) => {
+      const cbid = `${name}__${this._ran()}`;
+      const message = JSON.stringify({ name, params, cbid });
+      this._cbs[cbid] = { resolve, reject };
+      window[this.bridgeName].postMessage(message);
+    }).catch(e => console.log(e));
+  },
+  on(name, cb) {
+    const eid = `${name}__${this._ran()}`; this._ecbs.push({eid, cb});
+    return eid;
+  },
+  removeEvent(eid) { this._ecbs = this._ecbs.filter(e => e.eid !== eid) },
+}
+window.$app = window.__$app;
+''';
     final methods = _handleMap.keys.map((k) => '\$app.$k = (p) => \$app.send("$k", p);');
     final js = _bridges.map((e) => e.injectJavascript()).where((e) => e != "");
-    debugPrint(js.join(";\n"));
-    return global + methods.join("\n") + js.join(";\n");
+    return global + methods.join("\n") + "\n" + js.join(";\n");
+  }
+
+  String? injectedJsToUserAgent({String? ua}) {
+    final aua = ua ?? "";
+    if (Platform.isIOS) {
+      final b64 = base64.encode(utf8.encode(_injectedScript));
+      return '<injectedjs>$b64</injectedjs>$aua';
+    }
+    return ua;
   }
 
   callEvent(String name, {Map<String, dynamic>? data}) {

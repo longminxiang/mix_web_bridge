@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import './bridge_manager.dart';
+import './base.dart';
 
 final RouteObserver<PageRoute> mwbRouteObserver = RouteObserver<PageRoute>();
 
@@ -15,19 +15,28 @@ class MixWebInnerBridge extends MixWebBridge {
 
   /// route Handler
   MWBResponse routeHandle(MWBParams params) {
+    bool pop = mwbConvert<bool>(params["pop"]) ?? false;
     String name = mwbConvert<String>(params["name"]) ?? "";
-    if (name.isEmpty) {
-      throw MWBException('name required.');
-    }
+
     final navigator = mwbRouteObserver.navigator;
     if (navigator == null) {
       throw MWBException('navigator is null.');
     }
     try {
-      navigator.pushNamed(name, arguments: params["data"]);
+      if (pop && name.isNotEmpty) {
+        navigator.popAndPushNamed(name);
+      } else if (pop) {
+        navigator.pop();
+      } else {
+        if (name.isEmpty) {
+          throw MWBException('name required.');
+        }
+        navigator.pushNamed(name, arguments: params["data"]);
+      }
+    } on MWBException catch (_) {
+      rethrow;
     } catch (e) {
-      debugPrint("$e");
-      throw MWBException('route failed.');
+      throw MWBException('$name: route not found');
     }
     return null;
   }

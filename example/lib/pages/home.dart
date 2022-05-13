@@ -13,7 +13,7 @@ class Home extends StatelessWidget {
           CupertinoButton(
             child: const Text("Push webview"),
             onPressed: () {
-              Navigator.of(context).pushNamed("/web", arguments: {"url": "http://localhost:8080"});
+              Navigator.of(context).pushNamed("/web");
             },
           ),
         ],
