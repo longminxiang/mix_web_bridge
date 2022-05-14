@@ -1,8 +1,18 @@
 import 'package:flutter/cupertino.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:mix_web_bridge/mix_web_bridge.dart';
-import './pages/home.dart';
-import './pages/web.dart';
-import './mybridge.dart';
+
+class MyBridge extends MixWebBridge {
+  @override
+  MWBHandleMap handleMap() {
+    return {};
+  }
+
+  @override
+  String injectJavascript() {
+    return 'localStorage.token = "0330qr5kidw51ob03h9rbp7zc6n83d8m";';
+  }
+}
 
 void main() async {
   MixWebBridgeManager.setup(
@@ -30,6 +40,79 @@ class MyApp extends StatelessWidget {
       title: 'App',
       routes: _routes,
       supportedLocales: const [Locale('en', '')],
+    );
+  }
+}
+
+/// Home
+class Home extends StatelessWidget {
+  const Home({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return _AppPage(
+      title: "Home",
+      child: CupertinoButton(
+        child: const Text("Push webview"),
+        onPressed: () {
+          Navigator.of(context).pushNamed("/web");
+        },
+      ),
+    );
+  }
+}
+
+/// Web
+class Web extends StatefulWidget {
+  final String? url;
+  const Web({this.url, Key? key}) : super(key: key);
+
+  @override
+  _WebState createState() => _WebState();
+}
+
+class _WebState extends MixWebViewState<Web> {
+  String _title = "";
+
+  @override
+  Widget build(BuildContext context) {
+    final args = webViewArgs(initialUrl: widget.url);
+    return _AppPage(
+      title: _title,
+      child: WebView(
+        debuggingEnabled: true,
+        initialUrl: args.initialUrl,
+        javascriptMode: args.javascriptMode,
+        userAgent: args.userAgent,
+        javascriptChannels: {args.bridgeChannel},
+        onWebViewCreated: args.onWebViewCreated,
+        onPageFinished: (url) async {
+          final title = await bridgeManager.runJs("document.title");
+          setState(() {
+            _title = title ?? "";
+          });
+        },
+      ),
+    );
+  }
+}
+
+/// App Page
+class _AppPage extends StatelessWidget {
+  const _AppPage({Key? key, required this.title, required this.child}) : super(key: key);
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(middle: Text(title)),
+      backgroundColor: const Color.fromRGBO(247, 247, 247, 1),
+      resizeToAvoidBottomInset: true,
+      child: Container(
+        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 44),
+        child: child,
+      ),
     );
   }
 }

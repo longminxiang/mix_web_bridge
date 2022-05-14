@@ -4,7 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import './inner_bridge.dart';
 import './manager.dart';
 
-const _notFound = r'''
+const notFoundHtml = r'''
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -21,28 +21,26 @@ const _notFound = r'''
 </html>
 ''';
 
-class MixWebView extends StatefulWidget {
-  const MixWebView({
-    this.url,
-    this.htmlString,
-    this.onPageFinished,
-    this.initialCookies = const [],
-    this.debuggingEnabled = false,
-    Key? key,
-  }) : super(key: key);
+class MixWebViewArgs {
+  String? initialUrl;
+  String? initialHtml;
+  JavascriptMode javascriptMode;
+  String? userAgent;
+  JavascriptChannel bridgeChannel;
+  WebViewCreatedCallback onWebViewCreated;
 
-  final bool debuggingEnabled;
-  final String? url;
-  final List<WebViewCookie> initialCookies;
-  final String? htmlString;
-  final Function(String url, MixWebBridgeManager bm)? onPageFinished;
-
-  @override
-  _MixWebViewState createState() => _MixWebViewState();
+  MixWebViewArgs({
+    required this.initialUrl,
+    required this.javascriptMode,
+    required this.userAgent,
+    required this.bridgeChannel,
+    required this.onWebViewCreated,
+    this.initialHtml,
+  });
 }
 
-class _MixWebViewState extends State<MixWebView> with RouteAware, WidgetsBindingObserver {
-  final MixWebBridgeManager _bridgeManager = MixWebBridgeManager();
+abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with RouteAware, WidgetsBindingObserver {
+  final MixWebBridgeManager bridgeManager = MixWebBridgeManager();
   bool _onTop = false;
 
   @override
@@ -61,9 +59,9 @@ class _MixWebViewState extends State<MixWebView> with RouteAware, WidgetsBinding
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_onTop) return;
     if (state == AppLifecycleState.resumed) {
-      _bridgeManager.callEvent("appResumed");
+      bridgeManager.callEvent("appResumed");
     } else if (state == AppLifecycleState.paused) {
-      _bridgeManager.callEvent("appPaused");
+      bridgeManager.callEvent("appPaused");
     }
     super.didChangeAppLifecycleState(state);
   }
@@ -78,43 +76,48 @@ class _MixWebViewState extends State<MixWebView> with RouteAware, WidgetsBinding
   @override
   void didPopNext() {
     _onTop = true;
-    _bridgeManager.callEvent("pageAppear");
+    bridgeManager.callEvent("pageAppear");
   }
 
   @override
   void didPushNext() {
     _onTop = false;
-    _bridgeManager.callEvent("pageDisappear");
+    bridgeManager.callEvent("pageDisappear");
   }
 
-  @override
-  Widget build(BuildContext context) {
+  MixWebViewArgs webViewArgs({String? initialUrl, String? initialHtml}) {
+    const mode = JavascriptMode.unrestricted;
+    final ua = bridgeManager.injectedJsToUserAgent();
+    final channel = JavascriptChannel(
+      name: bridgeManager.channelName,
+      onMessageReceived: (msg) => bridgeManager.onChannelMessageReceived(msg.message),
+    );
+    onCreated(vc) {
+      bridgeManager.jsRunner = vc.runJavascriptReturningResult;
+      if (initialHtml != null) {
+        vc.loadHtmlString(initialHtml);
+      } else if (initialUrl == null || initialUrl.isEmpty) {
+        vc.loadHtmlString(notFoundHtml);
+      }
+    }
+
+    return MixWebViewArgs(
+      initialUrl: initialUrl,
+      initialHtml: initialHtml,
+      javascriptMode: mode,
+      userAgent: ua,
+      bridgeChannel: channel,
+      onWebViewCreated: onCreated,
+    );
+  }
+
+  Widget defaultWebView(MixWebViewArgs args) {
     return WebView(
-      debuggingEnabled: widget.debuggingEnabled,
-      initialUrl: widget.url,
-      initialCookies: widget.initialCookies,
-      javascriptMode: JavascriptMode.unrestricted,
-      userAgent: _bridgeManager.injectedJsToUserAgent(),
-      javascriptChannels: {
-        JavascriptChannel(
-          name: _bridgeManager.channelName,
-          onMessageReceived: (msg) => _bridgeManager.onChannelMessageReceived(msg.message),
-        )
-      },
-      onWebViewCreated: (vc) {
-        _bridgeManager.jsRunner = vc.runJavascriptReturningResult;
-        final html = widget.htmlString;
-        final url = widget.url ?? "";
-        if (html != null) {
-          vc.loadHtmlString(html);
-        } else if (url.isEmpty) {
-          vc.loadHtmlString(_notFound);
-        }
-      },
-      onPageFinished: (url) {
-        final func = widget.onPageFinished;
-        if (func != null) func(url, _bridgeManager);
-      },
+      initialUrl: args.initialUrl,
+      javascriptMode: args.javascriptMode,
+      userAgent: args.userAgent,
+      javascriptChannels: {args.bridgeChannel},
+      onWebViewCreated: args.onWebViewCreated,
     );
   }
 }
