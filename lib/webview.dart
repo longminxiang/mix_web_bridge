@@ -22,21 +22,31 @@ const notFoundHtml = r'''
 ''';
 
 class MixWebViewArgs {
-  String? initialUrl;
-  String? initialHtml;
-  JavascriptMode javascriptMode;
-  String? userAgent;
-  JavascriptChannel bridgeChannel;
-  WebViewCreatedCallback onWebViewCreated;
+  final String? initialUrl;
+  final String? initialHtml;
+  late final JavascriptMode javascriptMode;
+  late final String? userAgent;
+  late final JavascriptChannel bridgeChannel;
+  late final WebViewCreatedCallback onWebViewCreated;
 
-  MixWebViewArgs({
-    required this.initialUrl,
-    required this.javascriptMode,
-    required this.userAgent,
-    required this.bridgeChannel,
-    required this.onWebViewCreated,
-    this.initialHtml,
-  });
+  MixWebViewArgs({required MixWebBridgeManager bridgeManager, required this.initialUrl, this.initialHtml}) {
+    javascriptMode = JavascriptMode.unrestricted;
+    userAgent = bridgeManager.injectedJsToUserAgent();
+    bridgeChannel = JavascriptChannel(
+      name: bridgeManager.channelName,
+      onMessageReceived: (msg) => bridgeManager.onChannelMessageReceived(msg.message),
+    );
+    onWebViewCreated = (vc) {
+      bridgeManager.jsRunner = vc.runJavascriptReturningResult;
+      final html = initialHtml;
+      final url = initialUrl ?? "";
+      if (html != null) {
+        vc.loadHtmlString(html);
+      } else if (url.isEmpty) {
+        vc.loadHtmlString(notFoundHtml);
+      }
+    };
+  }
 }
 
 abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with RouteAware, WidgetsBindingObserver {
@@ -85,39 +95,20 @@ abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with R
     bridgeManager.callEvent("pageDisappear");
   }
 
-  MixWebViewArgs webViewArgs({String? initialUrl, String? initialHtml}) {
-    const mode = JavascriptMode.unrestricted;
-    final ua = bridgeManager.injectedJsToUserAgent();
-    final channel = JavascriptChannel(
-      name: bridgeManager.channelName,
-      onMessageReceived: (msg) => bridgeManager.onChannelMessageReceived(msg.message),
-    );
-    onCreated(vc) {
-      bridgeManager.jsRunner = vc.runJavascriptReturningResult;
-      if (initialHtml != null) {
-        vc.loadHtmlString(initialHtml);
-      } else if (initialUrl == null || initialUrl.isEmpty) {
-        vc.loadHtmlString(notFoundHtml);
-      }
-    }
+  void didGetTitle(String title) {}
 
-    return MixWebViewArgs(
-      initialUrl: initialUrl,
-      initialHtml: initialHtml,
-      javascriptMode: mode,
-      userAgent: ua,
-      bridgeChannel: channel,
-      onWebViewCreated: onCreated,
-    );
-  }
-
-  Widget defaultWebView(MixWebViewArgs args) {
+  Widget buildWebView({required String? url, String? html}) {
+    MixWebViewArgs args = MixWebViewArgs(bridgeManager: bridgeManager, initialUrl: url, initialHtml: url);
     return WebView(
       initialUrl: args.initialUrl,
       javascriptMode: args.javascriptMode,
       userAgent: args.userAgent,
       javascriptChannels: {args.bridgeChannel},
       onWebViewCreated: args.onWebViewCreated,
+      onPageFinished: (url) async {
+        final title = await bridgeManager.runJs("document.title");
+        didGetTitle(title ?? "");
+      },
     );
   }
 }

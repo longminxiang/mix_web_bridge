@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:mix_web_bridge/mix_web_bridge.dart';
 
 class MyBridge extends MixWebBridge {
@@ -73,26 +72,20 @@ class Web extends StatefulWidget {
 
 class _WebState extends MixWebViewState<Web> {
   String _title = "";
+  late final Widget webView = buildWebView(url: widget.url);
+
+  @override
+  void didGetTitle(String title) {
+    setState(() {
+      _title = title;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final args = webViewArgs(initialUrl: widget.url);
     return _AppPage(
       title: _title,
-      child: WebView(
-        debuggingEnabled: true,
-        initialUrl: args.initialUrl,
-        javascriptMode: args.javascriptMode,
-        userAgent: args.userAgent,
-        javascriptChannels: {args.bridgeChannel},
-        onWebViewCreated: args.onWebViewCreated,
-        onPageFinished: (url) async {
-          final title = await bridgeManager.runJs("document.title");
-          setState(() {
-            _title = title ?? "";
-          });
-        },
-      ),
+      child: webView,
     );
   }
 }
