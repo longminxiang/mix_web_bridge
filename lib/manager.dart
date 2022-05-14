@@ -9,8 +9,8 @@ class MixWebBridgeManager {
   static final _innerBridge = MixWebInnerBridge();
   static List<MixWebBridge> _bridges = [_innerBridge];
 
-  static setBridges(List<MixWebBridge> bridges) {
-    _bridges = [_innerBridge, ...bridges];
+  static setup({List<MixWebBridge>? bridges}) {
+    if (bridges != null) _bridges = [_innerBridge, ...bridges];
   }
 
   Future<String> Function(String js)? jsRunner;

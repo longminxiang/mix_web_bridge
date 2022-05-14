@@ -4,7 +4,7 @@ import './base.dart';
 final RouteObserver<PageRoute> mwbRouteObserver = RouteObserver<PageRoute>();
 
 class MixWebInnerBridge extends MixWebBridge {
-  /// hello Handler
+  /// hello Handle
   MWBResponse helloHandle(MWBParams params) {
     final message = mwbConvert<String>(params["message"]) ?? "";
     if (message.isEmpty) {
@@ -13,7 +13,7 @@ class MixWebInnerBridge extends MixWebBridge {
     return {"message": message};
   }
 
-  /// route Handler
+  /// route Handle
   MWBResponse routeHandle(MWBParams params) {
     bool pop = mwbConvert<bool>(params["pop"]) ?? false;
     String name = mwbConvert<String>(params["name"]) ?? "";

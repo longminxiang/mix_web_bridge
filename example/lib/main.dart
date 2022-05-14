@@ -5,7 +5,9 @@ import './pages/web.dart';
 import './mybridge.dart';
 
 void main() async {
-  MixWebBridgeManager.setBridges([MyBridge()]);
+  MixWebBridgeManager.setup(
+    bridges: [MyBridge()],
+  );
   runApp(MyApp());
 }
 

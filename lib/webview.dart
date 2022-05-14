@@ -22,12 +22,6 @@ const _notFound = r'''
 ''';
 
 class MixWebView extends StatefulWidget {
-  final bool debuggingEnabled;
-  final String? url;
-  final List<WebViewCookie> initialCookies;
-  final String? htmlString;
-  final Function(String url, MixWebBridgeManager bm)? onPageFinished;
-
   const MixWebView({
     this.url,
     this.htmlString,
@@ -36,6 +30,12 @@ class MixWebView extends StatefulWidget {
     this.debuggingEnabled = false,
     Key? key,
   }) : super(key: key);
+
+  final bool debuggingEnabled;
+  final String? url;
+  final List<WebViewCookie> initialCookies;
+  final String? htmlString;
+  final Function(String url, MixWebBridgeManager bm)? onPageFinished;
 
   @override
   _MixWebViewState createState() => _MixWebViewState();
