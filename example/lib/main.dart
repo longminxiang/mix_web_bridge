@@ -75,9 +75,10 @@ class _WebState extends MixWebViewState<Web> {
   late final Widget webView = buildWebView(url: widget.url);
 
   @override
-  void didGetTitle(String title) {
+  void onWebViewPageFinished(String url) async {
+    final title = await bridgeManager.runJs("document.title") ?? "";
     setState(() {
-      _title = title;
+      _title = title.replaceAll("\"", "");
     });
   }
 

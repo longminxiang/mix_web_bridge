@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -28,9 +29,11 @@ class MixWebViewArgs {
   late final String? userAgent;
   late final JavascriptChannel bridgeChannel;
   late final WebViewCreatedCallback onWebViewCreated;
+  late final PageStartedCallback onPageStarted;
 
   MixWebViewArgs({required MixWebBridgeManager bridgeManager, required this.initialUrl, this.initialHtml}) {
     javascriptMode = JavascriptMode.unrestricted;
+    onPageStarted = bridgeManager.injectedJsOnPageStarted;
     userAgent = bridgeManager.injectedJsToUserAgent();
     bridgeChannel = JavascriptChannel(
       name: bridgeManager.channelName,
@@ -51,7 +54,7 @@ class MixWebViewArgs {
 
 abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with RouteAware, WidgetsBindingObserver {
   final MixWebBridgeManager bridgeManager = MixWebBridgeManager();
-  bool _onTop = false;
+  bool _isTopRoute = true;
 
   @override
   void initState() {
@@ -67,13 +70,12 @@ abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with R
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_onTop) return;
+    if (!_isTopRoute) return;
     if (state == AppLifecycleState.resumed) {
       bridgeManager.callEvent("appResumed");
     } else if (state == AppLifecycleState.paused) {
       bridgeManager.callEvent("appPaused");
     }
-    super.didChangeAppLifecycleState(state);
   }
 
   @override
@@ -85,30 +87,28 @@ abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with R
 
   @override
   void didPopNext() {
-    _onTop = true;
+    _isTopRoute = true;
     bridgeManager.callEvent("pageAppear");
   }
 
   @override
   void didPushNext() {
-    _onTop = false;
+    _isTopRoute = false;
     bridgeManager.callEvent("pageDisappear");
   }
 
-  void didGetTitle(String title) {}
+  void onWebViewPageFinished(String url) {}
 
   Widget buildWebView({required String? url, String? html}) {
-    MixWebViewArgs args = MixWebViewArgs(bridgeManager: bridgeManager, initialUrl: url, initialHtml: url);
+    MixWebViewArgs args = MixWebViewArgs(bridgeManager: bridgeManager, initialUrl: url, initialHtml: html);
     return WebView(
       initialUrl: args.initialUrl,
       javascriptMode: args.javascriptMode,
       userAgent: args.userAgent,
       javascriptChannels: {args.bridgeChannel},
       onWebViewCreated: args.onWebViewCreated,
-      onPageFinished: (url) async {
-        final title = await bridgeManager.runJs("document.title");
-        didGetTitle(title ?? "");
-      },
+      onPageStarted: args.onPageStarted,
+      onPageFinished: onWebViewPageFinished,
     );
   }
 }

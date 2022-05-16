@@ -91,6 +91,14 @@ window.$app = window.__$app;
     return global + methods.join("\n") + "\n" + js.join(";\n");
   }
 
+  /// android
+  void injectedJsOnPageStarted(String url) {
+    if (Platform.isAndroid) {
+      runJs(_injectedScript);
+    }
+  }
+
+  /// ios
   String? injectedJsToUserAgent({String? ua}) {
     final aua = ua ?? "";
     if (Platform.isIOS) {
