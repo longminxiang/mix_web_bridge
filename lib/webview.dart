@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -110,5 +109,22 @@ abstract class MixWebViewState<T extends StatefulWidget> extends State<T> with R
       onPageStarted: args.onPageStarted,
       onPageFinished: onWebViewPageFinished,
     );
+  }
+}
+
+class MixWebView extends StatefulWidget {
+  final String? url;
+  const MixWebView({this.url, Key? key}) : super(key: key);
+
+  @override
+  _MixWebViewState createState() => _MixWebViewState();
+}
+
+class _MixWebViewState extends MixWebViewState<MixWebView> {
+  late final Widget webView = buildWebView(url: widget.url);
+
+  @override
+  Widget build(BuildContext context) {
+    return webView;
   }
 }
