@@ -1,6 +1,6 @@
 name: mix_web_bridge
 description: A flutter plugin that provides webview bridge base on webview_flutter.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/longminxiang/mix_web_bridge
 
 environment:
