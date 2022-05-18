@@ -18,10 +18,11 @@ A flutter plugin that provides webview bridge base on [webview_flutter](https://
       builder: (context) => const MixWebView(url: "https://www.google.com"),
     ));
 
-Now you can use `$app` in your `Javascript`:
+Now you can use `$app` in `Javascript`:
 
     const world = await $app.hello({message: "world"});
-    // world: {message: "world"}
+    console.log(world);
+    // {message: "world"}
 
 ## Advance use
 
@@ -82,7 +83,7 @@ Add `mwbRouteObserver` to navigatorObservers.
       );
     }
 
-Now you can:
+Using in javascript
 
     // route to home page
     $app.route({name: "/"});
@@ -98,13 +99,13 @@ Now you can:
 
 ### hello
 
-**Params**
+Params
 
 | param   | type   | required | mark          |
 | ------- | ------ | -------- | ------------- |
 | message | string | Y        | hello message |
 
-**Return**
+Return
 
 | name    | type   | mark |
 | ------- | ------ | ---- |
@@ -112,11 +113,11 @@ Now you can:
 
     const world = await $app.hello({message: "world"});
     console.log(world);
-    // world: {message: "world"}
+    // {message: "world"}
 
 ### route
 
-**Params**
+Params
 
 | param | type   | required | mark                  |
 | ----- | ------ | -------- | --------------------- |
@@ -124,7 +125,7 @@ Now you can:
 | data  | object | N        | route args            |
 | pop   | bool   | N        | pop the current route |
 
-**Return** `null`
+Return `null`
 
     // route to home page
     $app.route({name: "/"});
@@ -177,6 +178,15 @@ Create a class which extend to MixWebBridge
       /// run any js as you want on page started
       @override
       String injectJavascript() {
-        return 'localStorage.token = "my token";';
+        return 'localStorage.token = "mytoken";';
       }
     }
+
+Using in javascript
+
+    console.log(localStorage.token);
+    // mytoken
+
+    const msg = await $app.helloWorld({name: "Eric"});
+    console.log(msg);
+    // {message: "hello Eric"}
