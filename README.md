@@ -182,6 +182,15 @@ Create a class which extend to MixWebBridge
       }
     }
 
+Setup bridge in main
+
+    void main() async {
+      MixWebBridgeManager.setup(
+        bridges: [MyBridge()],
+      );
+      runApp(MyApp());
+    }
+
 Using in javascript
 
     console.log(localStorage.token);
