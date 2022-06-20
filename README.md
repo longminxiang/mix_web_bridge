@@ -1,6 +1,6 @@
 # MixWebBridge
 
-A flutter plugin that provides webview bridge base on [webview_flutter](https://pub.dev/packages/webview_flutter).
+A flutter plugin that provides webview bridge based on [webview_flutter](https://pub.dev/packages/webview_flutter).
 
 ## Getting Started
 
@@ -10,7 +10,7 @@ A flutter plugin that provides webview bridge base on [webview_flutter](https://
       mix_web_bridge: ^1.0.0
 
 
-### Very simple to use
+### Usage
 
     import 'package:mix_web_bridge/mix_web_bridge.dart';
 
@@ -24,7 +24,7 @@ Now you can use `$app` in `Javascript`:
     console.log(world);
     // {message: "world"}
 
-## Advance use
+## Advanced Usage
 
 Create your web widget, run some js on page finished.
 
@@ -60,9 +60,9 @@ Create your web widget, run some js on page finished.
       }
     }
 
-Using a routes map, and add to `App`.
+Create a routes map and add to `App`.
 
-Add `mwbRouteObserver` to navigatorObservers.
+Add `mwbRouteObserver` to navigatorObservers List.
 
     final Map<String, WidgetBuilder> _routes = {
       '/': (contxt) => const Home(),
@@ -83,7 +83,7 @@ Add `mwbRouteObserver` to navigatorObservers.
       );
     }
 
-Using in javascript
+Run javascript in WebView
 
     // route to home page
     $app.route({name: "/"});
@@ -157,25 +157,25 @@ Return `null`
     // remove event
     eventId && $app.removeEvent(eventId);
 
-## Add your own bridge
+## Customize your own bridge
 
 Create a class which extend to MixWebBridge
 
     class MyBridge extends MixWebBridge {
 
-      /// write your own bridge
+      /// Create a bridge
       MWBResponse myHelloHandle(MWBParams params) {
         final name = mwbConvert<String>(params["name"]) ?? "";
         return {"message": "hello $name"};
       }
 
-      /// binding
+      /// bind
       @override
       MWBHandleMap handleMap() {
         return {"helloWorld": myHelloHandle};
       }
 
-      /// run any js as you want on page started
+      /// run your js after page started
       @override
       String injectJavascript() {
         return 'localStorage.token = "mytoken";';
